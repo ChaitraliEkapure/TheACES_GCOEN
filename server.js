@@ -41,6 +41,26 @@ db.exec(`
     patient_name TEXT,
     location TEXT
   );
+  
+CREATE TABLE IF NOT EXISTS alerts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message TEXT,
+  level TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS patients (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT,
+  age INTEGER,
+  disease TEXT,
+  bed_id INTEGER,
+  equipment_id INTEGER,
+  admission_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  status TEXT DEFAULT 'admitted'
+);
+
+
 `);
 
 // Seed initial data if empty
@@ -140,12 +160,163 @@ app.post("/api/beds/add", (req, res) => {
   broadcastResources();
   res.json({ success: true });
 });
+app.post("/api/patients/admit", (req, res) => {
 
+  const { name, age, disease, bed_id, equipment_id } = req.body;
+
+  db.prepare(`
+    INSERT INTO patients (name, age, disease, bed_id, equipment_id)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(name, age, disease, bed_id, equipment_id);
+
+  // mark bed occupied
+  db.prepare(`
+    UPDATE beds SET status='occupied', patient_name=?
+    WHERE id=?
+  `).run(name, bed_id);
+
+  if (equipment_id) {
+    db.prepare(`
+      UPDATE equipment SET status='occupied', patient_name=?
+      WHERE id=?
+    `).run(name, equipment_id);
+  }
+
+  broadcastResources();
+
+  res.json({ success: true });
+
+});
+app.post("/api/patients/discharge", (req, res) => {
+
+  const { patient_id, bed_id, equipment_id } = req.body;
+
+  db.prepare(`
+    UPDATE patients SET status='discharged'
+    WHERE id=?
+  `).run(patient_id);
+
+  db.prepare(`
+    UPDATE beds SET status='available', patient_name=NULL
+    WHERE id=?
+  `).run(bed_id);
+
+  if (equipment_id) {
+    db.prepare(`
+      UPDATE equipment SET status='available', patient_name=NULL
+      WHERE id=?
+    `).run(equipment_id);
+  }
+
+  broadcastResources();
+
+  res.json({ success: true });
+
+});
+app.get("/api/patients", (req, res) => {
+
+  const patients = db.prepare(`
+    SELECT * FROM patients ORDER BY admission_date DESC
+  `).all();
+
+  res.json(patients);
+
+});
+app.get("/api/analytics", (req, res) => {
+
+  const totalRooms = db.prepare("SELECT COUNT(*) as count FROM rooms").get().count;
+
+  const totalBeds = db.prepare("SELECT COUNT(*) as count FROM beds").get().count;
+
+  const occupiedBeds = db.prepare(
+    "SELECT COUNT(*) as count FROM beds WHERE status='occupied'"
+  ).get().count;
+
+  const availableBeds = db.prepare(
+    "SELECT COUNT(*) as count FROM beds WHERE status='available'"
+  ).get().count;
+
+  const totalEquipment = db.prepare(
+    "SELECT COUNT(*) as count FROM equipment"
+  ).get().count;
+
+  const occupiedEquipment = db.prepare(
+    "SELECT COUNT(*) as count FROM equipment WHERE status='occupied'"
+  ).get().count;
+
+  const patients = db.prepare(
+    "SELECT COUNT(*) as count FROM patients WHERE status='admitted'"
+  ).get().count;
+
+  const occupancyRate =
+    totalBeds === 0 ? 0 : Math.round((occupiedBeds / totalBeds) * 100);
+
+  res.json({
+    totalRooms,
+    totalBeds,
+    occupiedBeds,
+    availableBeds,
+    totalEquipment,
+    occupiedEquipment,
+    patients,
+    occupancyRate
+  });
+
+});
+app.post("/api/patients/admit", (req, res) => {
+
+  const { name, age, disease, bed_id } = req.body;
+
+  db.prepare(`
+    INSERT INTO patients (name, age, disease, bed_id)
+    VALUES (?, ?, ?, ?)
+  `).run(name, age, disease, bed_id);
+
+  db.prepare(`
+    UPDATE beds
+    SET status='occupied', patient_name=?
+    WHERE id=?
+  `).run(name, bed_id);
+
+  broadcastResources();
+
+  res.json({ success: true });
+
+});
+app.get("/api/patients", (req, res) => {
+
+  const patients = db.prepare(`
+    SELECT * FROM patients
+    ORDER BY admission_date DESC
+  `).all();
+
+  res.json(patients);
+
+});
 app.post("/api/equipment/add", (req, res) => {
   const { name, location } = req.body;
   db.prepare("INSERT INTO equipment (name, location) VALUES (?, ?)").run(name, location);
   broadcastResources();
   res.json({ success: true });
+});
+app.post("/api/alert", (req, res) => {
+
+  const { message, level } = req.body;
+
+  db.prepare(`
+    INSERT INTO alerts (message, level)
+    VALUES (?, ?)
+  `).run(message, level || "critical");
+
+  // Broadcast alert to all clients
+  broadcast({
+    type: "EMERGENCY_ALERT",
+    message,
+    level
+  });
+
+  res.json({ success: true });
+
 });
 
 // Fallback to index.html
