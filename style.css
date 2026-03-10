@@ -1,0 +1,88 @@
+/* Blue Theme Colors */
+:root {
+    --color-primary: #2563eb;
+    --color-primary-light: #3b82f6;
+    --color-primary-soft: #eff6ff;
+    --color-bg: #ffffff;
+    --color-border: #e5e7eb;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+    font-family: var(--font-sans);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #3b82f6;
+    border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+}
+
+/* Card UI */
+.card-ui {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-4;
+}
+
+/* Primary Button */
+.btn-primary {
+    @apply px-4 py-2 rounded-lg text-white font-medium transition-all;
+    background-color: #2563eb;
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+/* Table Row Hover */
+.table-row-hover {
+    @apply transition-all duration-200;
+}
+
+.table-row-hover:hover {
+    background-color: #eff6ff;
+    box-shadow: inset 0 0 0 1px rgba(37,99,235,0.15);
+}
+
+/* Navigation Links */
+.nav-link {
+    @apply text-slate-500 hover:bg-slate-50 hover:text-blue-600;
+}
+
+.nav-link.active {
+    @apply bg-blue-50 text-blue-600;
+}
+
+/* Badges */
+.badge {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider;
+}
+
+.badge-success {
+    @apply bg-emerald-100 text-emerald-700;
+}
+
+.badge-error {
+    @apply bg-rose-100 text-rose-700;
+}
+
+.badge-warning {
+    @apply bg-amber-100 text-amber-700;
+}
+
+.badge-info {
+    @apply bg-blue-100 text-blue-700;
+}

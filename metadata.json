@@ -1,0 +1,5 @@
+{
+  "name": "VitalTrack: Hospital Resource Manager",
+  "description": "A real-time hospital resource tracking system for emergency resource allocation, monitoring beds, equipment, and room status.",
+  "requestFramePermissions": []
+}
