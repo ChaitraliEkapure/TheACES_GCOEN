@@ -14,19 +14,21 @@ function initIcons() {
 
 // API Helpers
 async function apiFetch(url, options = {}) {
-    const res = await fetch("http://localhost:3000" + url, {
+    const res = await fetch(url, {
         ...options,
         headers: {
-            "Content-Type": "application/json",
-            ...(options.headers || {})
+            'Content-Type': 'application/json',
+            ...options.headers
         }
     });
 
     const text = await res.text();
-    const data = text ? JSON.parse(text) : {};
+    if (!text) throw new Error("Server returned empty response");
+
+    const data = JSON.parse(text);
 
     if (!res.ok) {
-        throw new Error(data.message || "API Request failed");
+        throw new Error(data.message || "API request failed");
     }
 
     return data;
@@ -80,19 +82,8 @@ async function fetchData() {
 
 // Authentication
 async function login(username, password) {
-    try {
-        const res = await apiFetch('/api/login', {
-            method: 'POST',
-            body: JSON.stringify({ username, password })
-        });
-        state.user = res.user;
-        localStorage.setItem('vitaltrack_user', JSON.stringify(res.user));
-        setupWebSocket();
-        render();
-    } catch (err) {
-        const errorEl = document.getElementById('login-error');
-        errorEl.textContent = err.message;
-        errorEl.classList.remove('hidden');
+    if (window.login) {
+        window.login(username, password);
     }
 }
 
@@ -449,3 +440,20 @@ document.addEventListener('DOMContentLoaded', () => {
     
     render();
 });
+const signupBtn = document.getElementById("signup-btn");
+const signupModal = document.getElementById("signup-modal");
+const closeSignup = document.getElementById("close-signup");
+
+if (signupBtn) {
+    signupBtn.onclick = () => {
+        signupModal.classList.remove("hidden");
+        signupModal.classList.add("flex");
+    };
+}
+
+if (closeSignup) {
+    closeSignup.onclick = () => {
+        signupModal.classList.add("hidden");
+        signupModal.classList.remove("flex");
+    };
+}
